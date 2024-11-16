@@ -118,9 +118,20 @@ async function updateSystemStatus() {
     if (targetTemp) {
         const response = await fetch(`/system_status?target_temp=${targetTemp}`);
         const result = await response.json();
-        document.getElementById('systemStatus').innerText = `System is ${result.status}`;
+        const systemStatusElement = document.getElementById('systemStatus');
+        systemStatusElement.innerText = `System is ${result.status}`;
+
+        // Change color based on system status
+        if (result.status === 'Heating') {
+            systemStatusElement.style.color = 'red';
+        } else if (result.status === 'Cooling') {
+            systemStatusElement.style.color = 'blue';
+        } else {
+            systemStatusElement.style.color = 'white'; // Default color
+        }
     } else {
         document.getElementById('systemStatus').innerText = 'System is OFF';
+        document.getElementById('systemStatus').style.color = 'white'; // Default color
     }
 }
 
