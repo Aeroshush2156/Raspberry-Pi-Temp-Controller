@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Control</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<h1>Temperature Monitor</h1>
+<canvas id="temperatureChart" width="400" height="200"></canvas>
+
+<h2>Current Temperature</h2>
+<p id="currentTemp">Loading...</p>
+
+<h2>Data Collection</h2>
+<button id="toggleDataCollection" onclick="toggleDataCollection()">Start Data Collection</button>
+<a id="downloadLink" href="/download" style="display:none;">Download Data</a>
+
+<button id="saveData" onclick="saveData()">Save Data</button>
+
+<h2>Set Target Temperature</h2>
+<form id="targetTempForm">
+    <label for="target_temp">Target Temperature:</label>
+    <input type="number" id="target_temp" name="target_temp" required>
+    <button type="submit">Set Control</button>
+</form>
+<div id="message"></div>
+
+<h2>System Status</h2>
+<p id="systemStatus">System is OFF</p> <!-- Status indicator -->
+
+<script src="{{ url_for('static', filename='script.js') }}"></script> <!-- Link the JS file -->
+</body>
+</html>
