@@ -18,6 +18,7 @@ handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
 # GPIO setup
+GPIO.setmode(GPIO.BCM)
 HEAT_PIN = 17  # GPIO pin for heating relay
 COOL_PIN = 27  # GPIO pin for cooling relay
 
@@ -26,7 +27,6 @@ HEAT_PWM = GPIO.PWM(HEAT_PIN, 1000)  # 1 kHz frequency
 COOL_PWM = GPIO.PWM(COOL_PIN, 1000)  # 1 kHz frequency
 HEAT_PWM.start(0)  # Start with 0% duty cycle (off)
 COOL_PWM.start(0)  # Start with 0% duty cycle (off)
-GPIO.setmode(GPIO.BCM)
 GPIO.setup(HEAT_PIN, GPIO.OUT)
 GPIO.setup(COOL_PIN, GPIO.OUT)
 
