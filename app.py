@@ -178,6 +178,11 @@ if __name__ == '__main__':
         threading.Thread(target=save_temp_to_db, daemon=True).start()
     app.run(host='0.0.0.0', port=5000, debug=False)
     # Function to set target temperature
+import tkinter as tk
+from tkinter import messagebox
+import requests
+
+# Function to set target temperature
 def set_target_temp():
     target_temp = entry.get()
     if target_temp:
@@ -198,6 +203,9 @@ def run_tkinter_gui():
     root = tk.Tk()
     root.title("Temperature Control")
 
+    # Set the window to fullscreen
+    root.attributes('-fullscreen', True)
+
     label = tk.Label(root, text="Enter Target Temperature (°C):")
     label.pack(pady=10)
 
@@ -211,6 +219,7 @@ def run_tkinter_gui():
     root.mainloop()
 
 if __name__ == '__main__':
+    import os
     log_file = 'app.log'
 
     if os.path.exists(log_file) and os.access(log_file, os.W_OK):
@@ -221,6 +230,9 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         threading.Thread(target=save_temp_to_db, daemon=True).start()
+
+    # Set the DISPLAY environment variable
+    os.environ['DISPLAY'] = ':0'
 
     # Start the tkinter GUI in a separate thread
     threading.Thread(target=run_tkinter_gui, daemon=True).start()
