@@ -232,7 +232,7 @@ if __name__ == '__main__':
         threading.Thread(target=save_temp_to_db, daemon=True).start()
 
     # Set the DISPLAY environment variable
-    os.environ['DISPLAY'] = ':0'
+    os.environ['DISPLAY'] = ':1'
 
     # Start the tkinter GUI in a separate thread
     threading.Thread(target=run_tkinter_gui, daemon=True).start()
