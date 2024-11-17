@@ -3,11 +3,11 @@ from flask_sqlalchemy import SQLAlchemy
 import time, glob, threading, logging, csv, random
 from logging.handlers import RotatingFileHandler
 import RPi.GPIO as GPIO
+import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temperature.db'
 db = SQLAlchemy(app)
-
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,17 +22,18 @@ GPIO.setmode(GPIO.BCM)
 HEAT_PIN = 17  # GPIO pin for heating relay
 COOL_PIN = 27  # GPIO pin for cooling relay
 
-# PWM Setup
+# Setup GPIO pins as output
 GPIO.setup(HEAT_PIN, GPIO.OUT)
 GPIO.setup(COOL_PIN, GPIO.OUT)
+
+# PWM Setup
 HEAT_PWM = GPIO.PWM(HEAT_PIN, 1000)  # 1 kHz frequency
 COOL_PWM = GPIO.PWM(COOL_PIN, 1000)  # 1 kHz frequency
 HEAT_PWM.start(0)  # Start with 0% duty cycle (off)
 COOL_PWM.start(0)  # Start with 0% duty cycle (off)
-
-
-
-
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(HEAT_PIN, GPIO.OUT)
+GPIO.setup(COOL_PIN, GPIO.OUT)
 
 class Temperature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -80,6 +81,7 @@ def save_temp_to_db():
             else:
                 logging.warning("Failed to read temperature")
         time.sleep(60)  # Save temperature every minute
+
 @app.route('/data', methods=['GET'])
 def get_data():
     readings = Temperature.query.all()
@@ -105,14 +107,7 @@ def save_data():
 def download_data():
     return send_file('temperature_data.csv', as_attachment=True)
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        threading.Thread(target=save_temp_to_db, daemon=True).start()
-    app.run(host='0.0.0.0', port=5000, debug=False)
-
 # Function to control heating and cooling
-
 def calculate_duty_cycle(current, desired):
     """ Simple linear calculation for duty cycle based on temperature difference. """
     difference = desired - current
@@ -165,3 +160,17 @@ def system_status():
         return jsonify({'status': status})
     app.logger.warning("Failed to determine system status")
     return jsonify({'status': 'Unknown'}), 400
+
+if __name__ == '__main__':
+    log_file = 'app.log'
+
+    # Check if the file exists and has write permissions
+    if os.path.exists(log_file) and os.access(log_file, os.W_OK):
+        print(f"Write permissions are available for {log_file}")
+    else:
+        print(f"No write permissions for {log_file} or the file does not exist")
+
+    with app.app_context():
+        db.create_all()
+        threading.Thread(target=save_temp_to_db, daemon=True).start()
+    app.run(host='0.0.0.0', port=5000, debug=False)
