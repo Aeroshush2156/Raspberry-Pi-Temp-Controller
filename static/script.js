@@ -5,23 +5,29 @@ const temperatureChart = new Chart(ctx, {
         datasets: [{
             label: 'Temperature (°C)',
             data: [],
-            backgroundColor: 'rgba(75, 192, 192, 0.2)', // Adjust background color for line chart
-            borderColor: 'rgba(75, 192, 192, 1)', // Line color
-            fill: true, // Fill under the line
+            backgroundColor: 'rgba(0, 130, 0, 0.12)', // Adjust background color for line chart
+            borderColor: 'rgba(249, 200, 135, 0.69)', // Line color
+            fill: false, // Do not Fill under the line
         }]
     },
     options: {
         scales: {
             x: {
-                title: { display: true, text: 'Timestamp' },
+                title: { display: true, text: 'Timestamp', color: 'white' },
                 type: 'time', // Make sure to handle timestamps as needed
                 time: {
                     unit: 'minute'
+                },
+                ticks: {
+                    color: 'white' // Change x-axis values color
                 }
             },
             y: {
-                title: { display: true, text: 'Temperature (°C)' },
-                beginAtZero: false
+                title: { display: true, text: 'Temperature (°C)', color: 'white' },
+                beginAtZero: false,
+                ticks: {
+                    color: 'white' // Change y-axis values color
+                }
             }
         }
     }
