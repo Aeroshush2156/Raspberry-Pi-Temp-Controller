@@ -6,7 +6,7 @@ const temperatureChart = new Chart(ctx, {
             label: 'Temperature (°C)',
             data: [],
             backgroundColor: 'rgba(0, 130, 0, 0.12)', // Adjust background color for line chart
-            borderColor: 'rgba(249, 200, 135, 0.69)', // Line color
+            borderColor: 'rgba(6, 248, 43, 0.85)', // Line color
             fill: false, // Do not Fill under the line
         }]
     },
