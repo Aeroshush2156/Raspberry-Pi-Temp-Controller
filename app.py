@@ -171,6 +171,9 @@ def get_data():
 def home():
     return render_template('index.html')
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
 @app.route('/save_data', methods=['POST'])
 def save_data():
     readings = Temperature.query.all()
