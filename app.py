@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temperature.db'
 db = SQLAlchemy(app)
 # Function to set target temperature
-def set_target_temp():
+def set_target_temp(entry):
     target_temp = entry.get()
     if target_temp:
         try:
@@ -53,12 +53,18 @@ def run_tkinter_gui():
     label = tk.Label(root, text="Enter Target Temperature (°C):")
     label.pack(pady=10)
 
-    global entry
     entry = tk.Entry(root)
     entry.pack(pady=5)
 
-    button = tk.Button(root, text="Set Temperature", command=set_target_temp)
+    button = tk.Button(root, text="Set Temperature")
     button.pack(pady=20)
+
+    # Adding Quit button
+    quit_button = tk.Button(root, text="Quit", command=root.quit)
+    quit_button.pack(pady=20)
+
+    # Bind the Escape key to the same quit function for easy exit
+    root.bind('<Escape>', lambda e: root.quit())
 
     root.mainloop()
 
