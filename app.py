@@ -87,8 +87,6 @@ class Temperature(db.Model):
     temp = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-
-
 # Function to save temperature to the database
 def save_temp_to_db():
     while True:
@@ -102,6 +100,40 @@ def save_temp_to_db():
             else:
                 logging.warning("Failed to read temperature")
         time.sleep(60)  # Save temperature every minute
+
+# Function to control heating and cooling
+def calculate_duty_cycle(current, desired):
+    """ Simple linear calculation for duty cycle based on temperature difference. """
+    difference = desired - current
+    duty_cycle = max(0, min(100, difference * 10))  # Scale duty cycle proportionally (modify scaling as necessary)
+    return duty_cycle
+
+def control_temperature(target_temp):
+    current_temp = read_temp()
+    if current_temp is not None:
+        if current_temp < target_temp:
+            duty_cycle = calculate_duty_cycle(current_temp, target_temp)
+            HEAT_PWM.ChangeDutyCycle(duty_cycle)
+            COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
+            logging.info(f"Heating ON, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
+        elif current_temp > target_temp:
+            duty_cycle = calculate_duty_cycle(current_temp, target_temp)
+            COOL_PWM.ChangeDutyCycle(duty_cycle)
+            HEAT_PWM.ChangeDutyCycle(0)  # Turn off heating
+            logging.info(f"Heating OFF, Cooling ON. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
+        else:
+            HEAT_PWM.ChangeDutyCycle(0)  # Turn off heating
+            COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
+            logging.info(f"Heating OFF, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+app.logger.addHandler(handler)
+
 # Function to create and run the tkinter GUI
 def run_tkinter_gui():
     root = tk.Tk()
@@ -145,6 +177,49 @@ def set_target_temp():
         except ValueError:
             return jsonify({'message': 'Invalid target temperature'}), 400
     return jsonify({'message': 'Invalid target temperature'}), 400
+
+@app.route('/data', methods=['GET'])
+def get_data():
+    readings = Temperature.query.all()
+    data = [{'id': r.id, 'temp': r.temp, 'timestamp': r.timestamp.isoformat()} for r in readings]
+    return jsonify(data)
+
+
+
+@app.route('/save_data', methods=['POST'])
+def save_data():
+    readings = Temperature.query.all()
+    with open('temperature_data.csv', 'w', newline='') as csvfile:
+        fieldnames = ['id', 'temp', 'timestamp']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for r in readings:
+            writer.writerow({'id': r.id, 'temp': r.temp, 'timestamp': r.timestamp.isoformat()})
+    return jsonify({'message': 'Data saved successfully'})
+
+@app.route('/download', methods=['GET'])
+def download_data():
+    return send_file('temperature_data.csv', as_attachment=True)
+
+
+
+@app.route('/system_status', methods=['GET'])
+def system_status():
+    current_temp = read_temp()
+    target_temp = request.args.get('target_temp', type=float)
+    app.logger.info(f"Current Temp: {current_temp}, Target Temp: {target_temp}")
+    if current_temp is not None and target_temp is not None:
+        if current_temp < target_temp:
+            status = 'Heating'
+        elif current_temp > target_temp:
+            status = 'Cooling'
+        else:
+            status = 'Idle'
+        app.logger.info(f"System Status: {status}")
+        return jsonify({'status': status})
+    app.logger.warning("Failed to determine system status")
+    return jsonify({'status': 'Unknown'}), 400
+
 if __name__ == '__main__':
     # Set the DISPLAY environment variable
     os.environ['DISPLAY'] = ':0'
@@ -178,80 +253,7 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
 
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-app.logger.addHandler(handler)
 
-@app.route('/data', methods=['GET'])
-def get_data():
-    readings = Temperature.query.all()
-    data = [{'id': r.id, 'temp': r.temp, 'timestamp': r.timestamp.isoformat()} for r in readings]
-    return jsonify(data)
-
-
-
-@app.route('/save_data', methods=['POST'])
-def save_data():
-    readings = Temperature.query.all()
-    with open('temperature_data.csv', 'w', newline='') as csvfile:
-        fieldnames = ['id', 'temp', 'timestamp']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for r in readings:
-            writer.writerow({'id': r.id, 'temp': r.temp, 'timestamp': r.timestamp.isoformat()})
-    return jsonify({'message': 'Data saved successfully'})
-
-@app.route('/download', methods=['GET'])
-def download_data():
-    return send_file('temperature_data.csv', as_attachment=True)
-
-# Function to control heating and cooling
-def calculate_duty_cycle(current, desired):
-    """ Simple linear calculation for duty cycle based on temperature difference. """
-    difference = desired - current
-    duty_cycle = max(0, min(100, difference * 10))  # Scale duty cycle proportionally (modify scaling as necessary)
-    return duty_cycle
-
-def control_temperature(target_temp):
-    current_temp = read_temp()
-    if current_temp is not None:
-        if current_temp < target_temp:
-            duty_cycle = calculate_duty_cycle(current_temp, target_temp)
-            HEAT_PWM.ChangeDutyCycle(duty_cycle)
-            COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
-            logging.info(f"Heating ON, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
-        elif current_temp > target_temp:
-            duty_cycle = calculate_duty_cycle(current_temp, target_temp)
-            COOL_PWM.ChangeDutyCycle(duty_cycle)
-            HEAT_PWM.ChangeDutyCycle(0)  # Turn off heating
-            logging.info(f"Heating OFF, Cooling ON. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
-        else:
-            HEAT_PWM.ChangeDutyCycle(0)  # Turn off heating
-            COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
-            logging.info(f"Heating OFF, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
-
-
-
-@app.route('/system_status', methods=['GET'])
-def system_status():
-    current_temp = read_temp()
-    target_temp = request.args.get('target_temp', type=float)
-    app.logger.info(f"Current Temp: {current_temp}, Target Temp: {target_temp}")
-    if current_temp is not None and target_temp is not None:
-        if current_temp < target_temp:
-            status = 'Heating'
-        elif current_temp > target_temp:
-            status = 'Cooling'
-        else:
-            status = 'Idle'
-        app.logger.info(f"System Status: {status}")
-        return jsonify({'status': status})
-    app.logger.warning("Failed to determine system status")
-    return jsonify({'status': 'Unknown'}), 400
 
 
 
