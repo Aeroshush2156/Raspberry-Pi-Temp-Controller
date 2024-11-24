@@ -9,9 +9,15 @@ from tkinter import messagebox
 import requests
 import threading
 import subprocess
+
+# Initialize Flask app and Database
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temperature.db'
 db = SQLAlchemy(app)
+
+# Global variable for target temperature
+target_temp = None
+
 # Function to set target temperature
 def set_target_temp(entry):
     target_temp = entry.get()
@@ -41,14 +47,6 @@ def save_temp_to_db():
             else:
                 logging.warning("Failed to read temperature")
         time.sleep(60)  # Save temperature every minute
-
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
 # Function to create and run the tkinter GUI
 def run_tkinter_gui():
     root = tk.Tk()
@@ -75,6 +73,23 @@ def run_tkinter_gui():
 
     root.mainloop()
 
+# Function to run the Flask app
+def run_flask():
+    app.run(host='0.0.0.0', port=5000, debug=False)
+@app.route('/')
+def home():
+    return render_template('index.html')
+@app.route('/set_target_temp', methods=['POST'])
+def set_target_temp():
+    target_temp = request.json.get('target_temp')
+    if target_temp is not None:
+        try:
+            target_temp = float(target_temp)  # Convert target_temp to float
+            control_temperature(target_temp)
+            return jsonify({'message': 'Target temperature set successfully'})
+        except ValueError:
+            return jsonify({'message': 'Invalid target temperature'}), 400
+    return jsonify({'message': 'Invalid target temperature'}), 400
 if __name__ == '__main__':
     # Set the DISPLAY environment variable
     os.environ['DISPLAY'] = ':0'
@@ -216,17 +231,7 @@ def control_temperature(target_temp):
             COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
             logging.info(f"Heating OFF, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
 
-@app.route('/set_target_temp', methods=['POST'])
-def set_target_temp():
-    target_temp = request.json.get('target_temp')
-    if target_temp is not None:
-        try:
-            target_temp = float(target_temp)  # Convert target_temp to float
-            control_temperature(target_temp)
-            return jsonify({'message': 'Target temperature set successfully'})
-        except ValueError:
-            return jsonify({'message': 'Invalid target temperature'}), 400
-    return jsonify({'message': 'Invalid target temperature'}), 400
+
 
 @app.route('/system_status', methods=['GET'])
 def system_status():
