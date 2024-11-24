@@ -10,6 +10,24 @@ import requests
 import threading
 import subprocess
 
+# GPIO setup
+GPIO.setmode(GPIO.BCM)
+HEAT_PIN = 17  # GPIO pin for heating relay
+COOL_PIN = 27  # GPIO pin for cooling relay
+
+# Setup GPIO pins as output
+GPIO.setup(HEAT_PIN, GPIO.OUT)
+GPIO.setup(COOL_PIN, GPIO.OUT)
+
+# PWM Setup
+HEAT_PWM = GPIO.PWM(HEAT_PIN, 1000)  # 1 kHz frequency
+COOL_PWM = GPIO.PWM(COOL_PIN, 1000)  # 1 kHz frequency
+HEAT_PWM.start(0)  # Start with 0% duty cycle (off)
+COOL_PWM.start(0)  # Start with 0% duty cycle (off)
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(HEAT_PIN, GPIO.OUT)
+GPIO.setup(COOL_PIN, GPIO.OUT)
+
 # Initialize Flask app and Database
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temperature.db'
@@ -62,6 +80,13 @@ def read_temp():
             temp_c = float(temp_string) / 1000.0
             return temp_c
     return None
+
+# Database model for temperature readings
+class Temperature(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    temp = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+
 
 
 # Function to save temperature to the database
@@ -160,32 +185,6 @@ handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
-
-# GPIO setup
-GPIO.setmode(GPIO.BCM)
-HEAT_PIN = 17  # GPIO pin for heating relay
-COOL_PIN = 27  # GPIO pin for cooling relay
-
-# Setup GPIO pins as output
-GPIO.setup(HEAT_PIN, GPIO.OUT)
-GPIO.setup(COOL_PIN, GPIO.OUT)
-
-# PWM Setup
-HEAT_PWM = GPIO.PWM(HEAT_PIN, 1000)  # 1 kHz frequency
-COOL_PWM = GPIO.PWM(COOL_PIN, 1000)  # 1 kHz frequency
-HEAT_PWM.start(0)  # Start with 0% duty cycle (off)
-COOL_PWM.start(0)  # Start with 0% duty cycle (off)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(HEAT_PIN, GPIO.OUT)
-GPIO.setup(COOL_PIN, GPIO.OUT)
-
-class Temperature(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    temp = db.Column(db.Float, nullable=False)
-    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
-
-
-
 
 @app.route('/data', methods=['GET'])
 def get_data():
