@@ -34,6 +34,21 @@ def set_target_temp(entry):
     else:
         messagebox.showwarning("Input Error", "Please enter a valid target temperature")
 
+# Function to read and parse temperature data
+def read_temp():
+    lines = read_temp_raw()
+    while lines and lines[0].strip()[-3:] != 'YES':
+        time.sleep(0.2)  # Wait and try again if the sensor is not ready
+        lines = read_temp_raw()
+    if lines:
+        equals_pos = lines[1].find('t=')
+        if equals_pos != -1:
+            temp_string = lines[1][equals_pos + 2:]
+            temp_c = float(temp_string) / 1000.0
+            return temp_c
+    return None
+
+
 # Function to save temperature to the database
 def save_temp_to_db():
     while True:
@@ -168,19 +183,6 @@ def read_temp_raw():
         logging.error(f"Error reading temperature sensor: {e}")
         return []
 
-# Function to read and parse temperature data
-def read_temp():
-    lines = read_temp_raw()
-    while lines and lines[0].strip()[-3:] != 'YES':
-        time.sleep(0.2)  # Wait and try again if the sensor is not ready
-        lines = read_temp_raw()
-    if lines:
-        equals_pos = lines[1].find('t=')
-        if equals_pos != -1:
-            temp_string = lines[1][equals_pos + 2:]
-            temp_c = float(temp_string) / 1000.0
-            return temp_c
-    return None
 
 
 @app.route('/data', methods=['GET'])
