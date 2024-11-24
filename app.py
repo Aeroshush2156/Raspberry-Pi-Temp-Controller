@@ -234,6 +234,10 @@ if __name__ == '__main__':
     # Set the DISPLAY environment variable
     os.environ['DISPLAY'] = ':1'
 
+    # Verify the DISPLAY environment variable
+    if os.environ.get('DISPLAY') == ':1':
+        print("DISPLAY environment variable is set correctly")
+
     # Start the tkinter GUI in a separate thread
     threading.Thread(target=run_tkinter_gui, daemon=True).start()
 
