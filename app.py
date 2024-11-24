@@ -42,6 +42,13 @@ def save_temp_to_db():
                 logging.warning("Failed to read temperature")
         time.sleep(60)  # Save temperature every minute
 
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
 # Function to create and run the tkinter GUI
 def run_tkinter_gui():
     root = tk.Tk()
@@ -167,12 +174,7 @@ def get_data():
     data = [{'id': r.id, 'temp': r.temp, 'timestamp': r.timestamp.isoformat()} for r in readings]
     return jsonify(data)
 
-@app.route('/')
-def home():
-    return render_template('index.html')
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
 
 @app.route('/save_data', methods=['POST'])
 def save_data():
