@@ -60,11 +60,11 @@ def run_tkinter_gui():
     button.pack(pady=20)
 
     # Adding Quit button
-    quit_button = tk.Button(root, text="Quit", command=root.quit)
+    quit_button = tk.Button(root, text="Quit", command=root.destroy)
     quit_button.pack(pady=20)
 
     # Bind the Escape key to the same quit function for easy exit
-    root.bind('<Escape>', lambda e: root.quit())
+    root.bind('<Escape>', lambda e: root.destroy())
 
     root.mainloop()
 
