@@ -34,6 +34,21 @@ def set_target_temp(entry):
     else:
         messagebox.showwarning("Input Error", "Please enter a valid target temperature")
 
+# Function to read raw data from the temperature sensor
+def read_temp_raw():
+    try:
+        base_dir = '/sys/bus/w1/devices/'
+        device_folder = glob.glob(base_dir + '28*')[0]  # Assuming only one DS18B20 sensor
+        device_file = device_folder + '/w1_slave'
+
+        with open(device_file, 'r') as f:
+            lines = f.readlines()
+        return lines
+    except Exception as e:
+        logging.error(f"Error reading temperature sensor: {e}")
+        return []
+
+
 # Function to read and parse temperature data
 def read_temp():
     lines = read_temp_raw()
@@ -169,19 +184,6 @@ class Temperature(db.Model):
     temp = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-# Function to read raw data from the temperature sensor
-def read_temp_raw():
-    try:
-        base_dir = '/sys/bus/w1/devices/'
-        device_folder = glob.glob(base_dir + '28*')[0]  # Assuming only one DS18B20 sensor
-        device_file = device_folder + '/w1_slave'
-
-        with open(device_file, 'r') as f:
-            lines = f.readlines()
-        return lines
-    except Exception as e:
-        logging.error(f"Error reading temperature sensor: {e}")
-        return []
 
 
 
