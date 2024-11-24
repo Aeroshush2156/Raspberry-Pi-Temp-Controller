@@ -64,10 +64,10 @@ def run_tkinter_gui():
 
 if __name__ == '__main__':
     # Set the DISPLAY environment variable
-    os.environ['DISPLAY'] = ':1'
+    os.environ['DISPLAY'] = ':0'
 
     # Verify the DISPLAY environment variable
-    if os.environ.get('DISPLAY') == ':1':
+    if os.environ.get('DISPLAY') == ':0':
         print("DISPLAY environment variable is set correctly")
 
     # Check if the display is available
