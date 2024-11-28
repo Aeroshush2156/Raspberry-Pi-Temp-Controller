@@ -35,23 +35,29 @@ const temperatureChart = new Chart(ctx, {
 
 // Function to fetch temperature data
 async function fetchTemperatureData() {
-    const response = await fetch('/data');
-    const data = await response.json();
-    const temperatures = data.map(entry => ({
-        x: new Date(entry.timestamp), // Parse timestamp as Date object
-        y: entry.temp
-    }));
+    try {
+        const response = await fetch('/data');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const temperatures = data.map(entry => ({
+            x: new Date(entry.timestamp),
+            y: entry.temp
+        }));
 
-    // Update chart data
-    temperatureChart.data.datasets[0].data = temperatures;
-    temperatureChart.update();
+        temperatureChart.data.datasets[0].data = temperatures;
+        temperatureChart.update();
 
-    // Update current temperature display
-    if (data.length > 0) {
-        const latestTemp = data[data.length - 1].temp;
-        document.getElementById('currentTemp').innerText = `Current Temperature: ${latestTemp}°C`;
-    } else {
-        document.getElementById('currentTemp').innerText = 'No temperature data available.';
+        if (data.length > 0) {
+            const latestTemp = data[data.length - 1].temp;
+            document.getElementById('currentTemp').innerText = `Current Temperature: ${latestTemp}°C`;
+        } else {
+            document.getElementById('currentTemp').innerText = 'No temperature data available.';
+        }
+    } catch (error) {
+        console.error('Error fetching temperature data:', error);
+        document.getElementById('currentTemp').innerText = 'Error fetching temperature data.';
     }
 }
 
@@ -119,27 +125,32 @@ document.getElementById('targetTempForm').addEventListener('submit', async funct
         alert('Please enter a valid target temperature.');
     }
 });
+
 async function updateSystemStatus() {
     const targetTemp = document.getElementById('target_temp').value;
-    if (targetTemp) {
+    try {
         const response = await fetch(`/system_status?target_temp=${targetTemp}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const result = await response.json();
         const systemStatusElement = document.getElementById('systemStatus');
         systemStatusElement.innerText = `System is ${result.status}`;
 
-        // Change color based on system status
         if (result.status === 'Heating') {
             systemStatusElement.style.color = 'red';
         } else if (result.status === 'Cooling') {
             systemStatusElement.style.color = 'blue';
         } else {
-            systemStatusElement.style.color = 'white'; // Default color
+            systemStatusElement.style.color = 'white';
         }
-    } else {
-        document.getElementById('systemStatus').innerText = 'System is OFF';
-        document.getElementById('systemStatus').style.color = 'white'; // Default color
+    } catch (error) {
+        console.error('Error updating system status:', error);
+        document.getElementById('systemStatus').innerText = 'Error updating system status.';
+        document.getElementById('systemStatus').style.color = 'white';
     }
 }
 
-// Call updateSystemStatus periodically
-setInterval(updateSystemStatus, 60000); // Update every minute
+fetchTemperatureData();
+setInterval(fetchTemperatureData, 60000);
+setInterval(updateSystemStatus, 60000);
