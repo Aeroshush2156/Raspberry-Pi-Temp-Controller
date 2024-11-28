@@ -40,6 +40,7 @@ target_temp = None
 
 # Function to set target temperature
 def set_target_temp(entry):
+    global target_temp  # Declare as global to modify the outer variable
     target_temp = entry.get()
     if target_temp:
         try:
@@ -186,7 +187,7 @@ def run_tkinter_gui():
 
     def update_display():
         try:
-            response = requests.get('http://localhost:5000/system_status')
+            response = requests.get('http://localhost:5000/system_status?target_temp=' + str(target_temp))
             if response.status_code == 200:
                 data = response.json()
                 current_temp_label.config(text=f"Current Temperature: {data['current_temp']}°C")
@@ -205,7 +206,8 @@ def run_tkinter_gui():
         except Exception as e:
             current_temp_label.config(text="Current Temperature: --°C")
             system_status_label.config(text="System Status: --")
-            print(f"Error updating display: {e}")
+            print(f"Error updating display: {e}")  # Print error to console
+            logging.error(f"Error updating display: {e}")  # Also log the error
 
         root.after(60000, update_display)  # Update every minute
 
