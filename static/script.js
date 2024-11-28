@@ -107,7 +107,7 @@ document.getElementById('targetTempForm').addEventListener('submit', async funct
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ target_temp: targetTemp })
+                body: JSON.stringify({ target_temp: parseFloat(targetTemp) }) // Ensure target_temp is a float
             });
 
             if (!response.ok) {
