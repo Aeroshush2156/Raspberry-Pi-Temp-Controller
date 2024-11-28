@@ -38,23 +38,6 @@ db = SQLAlchemy(app)
 # Global variable for target temperature
 target_temp = None
 
-# Function to set target temperature
-def set_target_temp(entry):
-    global target_temp  # Declare as global to modify the outer variable
-    target_temp = entry.get()
-    if target_temp:
-        try:
-            response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
-            if response.status_code == 200:
-                result = response.json()
-                messagebox.showinfo("Success", result['message'])
-            else:
-                messagebox.showerror("Error", "Failed to set target temperature")
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred: {e}")
-    else:
-        messagebox.showwarning("Input Error", "Please enter a valid target temperature")
-
 # Function to read raw data from the temperature sensor
 def read_temp_raw():
     try:
@@ -89,6 +72,25 @@ class Temperature(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     temp = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+# Function to set target temperature
+def set_target_temp(entry):
+    global target_temp  # Declare as global to modify the outer variable
+    target_temp = entry.get()
+    if target_temp:
+        try:
+            response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
+            if response.status_code == 200:
+                result = response.json()
+                messagebox.showinfo("Success", result['message'])
+            else:
+                messagebox.showerror("Error", "Failed to set target temperature")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
+    else:
+        messagebox.showwarning("Input Error", "Please enter a valid target temperature")
+
+
 
 # Function to save temperature to the database
 def save_temp_to_db():
@@ -137,108 +139,6 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# Function to create and run the tkinter GUI
-def run_tkinter_gui():
-    root = tk.Tk()
-    root.title("Temperature Control")
-
-    # Set the window to fullscreen
-    root.attributes('-fullscreen', True)
-
-    # Create a frame for the plot
-    plot_frame = tk.Frame(root)
-    plot_frame.pack(pady=10)
-
-    # Create a figure for the plot
-    fig = Figure(figsize=(8, 4), dpi=100)
-    ax = fig.add_subplot(111)
-    ax.set_title("Temperature vs Time")
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Temperature (°C)")
-
-    # Create a canvas to display the plot
-    canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-    canvas.draw()
-    canvas.get_tk_widget().pack()
-
-    label = tk.Label(root, text="Enter Target Temperature (°C):")
-    label.pack(pady=10)
-
-    entry = tk.Entry(root)
-    entry.pack(pady=5)
-
-    button = tk.Button(root, text="Set Temperature", command=lambda: set_target_temp(entry))
-    button.pack(pady=20)
-
-    # Adding Quit button
-    quit_button = tk.Button(root, text="Quit", command=root.destroy)
-    quit_button.pack(pady=20)
-
-    # Bind the Escape key to the same quit function for easy exit
-    root.bind('<Escape>', lambda e: root.destroy())
-
-    # Label to display the current temperature
-    current_temp_label = tk.Label(root, text="Current Temperature: --°C", font=("Helvetica", 16))
-    current_temp_label.pack(pady=10)
-
-    # Label to display the system status
-    system_status_label = tk.Label(root, text="System Status: --", font=("Helvetica", 16))
-    system_status_label.pack(pady=10)
-
-    def update_display():
-        try:
-            response = requests.get('http://localhost:5000/system_status?target_temp=' + str(target_temp))
-            if response.status_code == 200:
-                data = response.json()
-                current_temp_label.config(text=f"Current Temperature: {data['current_temp']}°C")
-                system_status_label.config(text=f"System Status: {data['status']}")
-
-                # Change color based on system status
-                if data['status'] == 'Heating':
-                    system_status_label.config(fg='red')
-                elif data['status'] == 'Cooling':
-                    system_status_label.config(fg='blue')
-                else:
-                    system_status_label.config(fg='black')
-            else:
-                current_temp_label.config(text="Current Temperature: --°C")
-                system_status_label.config(text="System Status: --")
-        except Exception as e:
-            current_temp_label.config(text="Current Temperature: --°C")
-            system_status_label.config(text="System Status: --")
-            print(f"Error updating display: {e}")  # Print error to console
-            logging.error(f"Error updating display: {e}")  # Also log the error
-
-        root.after(60000, update_display)  # Update every minute
-
-    def update_plot():
-        try:
-            response = requests.get('http://localhost:5000/data')
-            if response.status_code == 200:
-                data = response.json()
-                times = [entry['timestamp'] for entry in data]
-                temps = [entry['temp'] for entry in data]
-                ax.clear()
-                ax.plot(times, temps, label='Temperature (°C)')
-                ax.set_title("Temperature vs Time")
-                ax.set_xlabel("Time")
-                ax.set_ylabel("Temperature (°C)")
-                ax.legend()
-                canvas.draw()
-            else:
-                print("Failed to fetch data for plot")
-        except Exception as e:
-            print(f"Error updating plot: {e}")
-
-        root.after(60000, update_plot)  # Update every minute
-
-    update_display()  # Initial call to update the display
-    update_plot()  # Initial call to update the plot
-
-    root.mainloop()
-# Function to run the Flask app
-def run_flask():
-    app.run(host='0.0.0.0', port=5000, debug=False)
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -295,6 +195,119 @@ def system_status():
         return jsonify({'status': status})
     app.logger.warning("Failed to determine system status")
     return jsonify({'status': 'Unknown'}), 400
+
+# Function to run the Flask app
+def run_flask():
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
+
+
+# Function to create and run the tkinter GUI
+def run_tkinter_gui():
+    root = tk.Tk()
+    root.title("Temperature Control")
+
+    # Set the window to fullscreen
+    root.attributes('-fullscreen', True)
+
+    # Create a frame for the plot
+    plot_frame = tk.Frame(root)
+    plot_frame.pack(pady=10)
+
+    # Create a figure for the plot
+    fig = Figure(figsize=(8, 4), dpi=100)
+    ax = fig.add_subplot(111)
+    ax.set_title("Temperature vs Time")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Temperature (°C)")
+
+    # Create a canvas to display the plot
+    canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
+    label = tk.Label(root, text="Enter Target Temperature (°C):")
+    label.pack(pady=10)
+
+    entry = tk.Entry(root)
+    entry.pack(pady=5)
+
+    button = tk.Button(root, text="Set Temperature", command=lambda: set_target_temp(entry))
+    button.pack(pady=20)
+
+    # Adding Quit button
+    quit_button = tk.Button(root, text="Quit", command=root.destroy)
+    quit_button.pack(pady=20)
+
+    # Bind the Escape key to the same quit function for easy exit
+    root.bind('<Escape>', lambda e: root.destroy())
+
+    # Label to display the current temperature
+    current_temp_label = tk.Label(root, text="Current Temperature: --°C", font=("Helvetica", 16))
+    current_temp_label.pack(pady=10)
+
+    # Label to display the system status
+    system_status_label = tk.Label(root, text="System Status: --", font=("Helvetica", 16))
+    system_status_label.pack(pady=10)
+
+    def update_display():
+        global target_temp  # Ensure we reference the updated target_temp
+        # Ensure target_temp is not None
+        if target_temp is None:
+           print("Warning: target_temp is not set. Using default value.")
+           target_temp = 20  # Set default value if not set; adjust as necessary
+
+        try:
+            response = requests.get('http://localhost:5000/system_status?target_temp=' + str(target_temp))
+            if response.status_code == 200:
+                data = response.json()
+                current_temp_label.config(text=f"Current Temperature: {data['current_temp']}°C")
+                system_status_label.config(text=f"System Status: {data['status']}")
+
+                # Change color based on system status
+                if data['status'] == 'Heating':
+                    system_status_label.config(fg='red')
+                elif data['status'] == 'Cooling':
+                    system_status_label.config(fg='blue')
+                else:
+                    system_status_label.config(fg='black')
+            else:
+                current_temp_label.config(text="Current Temperature: --°C")
+                system_status_label.config(text="System Status: --")
+        except Exception as e:
+            current_temp_label.config(text="Current Temperature: --°C")
+            system_status_label.config(text="System Status: --")
+            print(f"Error updating display: {e}")  # Print error to console
+            logging.error(f"Error updating display: {e}")  # Also log the error
+
+        root.after(60000, update_display)  # Update every minute
+
+    def update_plot():
+        try:
+            response = requests.get('http://localhost:5000/data')
+            if response.status_code == 200:
+                data = response.json()
+                times = [entry['timestamp'] for entry in data]
+                temps = [entry['temp'] for entry in data]
+                ax.clear()
+                ax.plot(times, temps, label='Temperature (°C)')
+                ax.set_title("Temperature vs Time")
+                ax.set_xlabel("Time")
+                ax.set_ylabel("Temperature (°C)")
+                ax.legend()
+                canvas.draw()
+            else:
+                print("Failed to fetch data for plot")
+        except Exception as e:
+            print(f"Error updating plot: {e}")
+
+        root.after(60000, update_plot)  # Update every minute
+
+    update_display()  # Initial call to update the display
+    update_plot()  # Initial call to update the plot
+
+    root.mainloop()
+
 
 if __name__ == '__main__':
     # Set the DISPLAY environment variable
