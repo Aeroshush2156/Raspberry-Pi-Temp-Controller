@@ -181,9 +181,12 @@ def download_data():
 
 @app.route('/system_status', methods=['GET'])
 def system_status():
-    current_temp = read_temp()
+    current_temp = read_temp()  # Call the function to read the current temperature
     target_temp = request.args.get('target_temp', type=float)
-    app.logger.info(f"Current Temp: {current_temp}, Target Temp: {target_temp}")
+
+    # Log the received temperatures for debugging
+    logging.info(f"Current Temp: {current_temp}, Target Temp: {target_temp}")
+
     if current_temp is not None and target_temp is not None:
         if current_temp < target_temp:
             status = 'Heating'
@@ -191,9 +194,11 @@ def system_status():
             status = 'Cooling'
         else:
             status = 'Idle'
-        app.logger.info(f"System Status: {status}")
-        return jsonify({'status': status})
-    app.logger.warning("Failed to determine system status")
+
+        # Return status along with the current temperature
+        return jsonify({'status': status, 'current_temp': current_temp})
+
+    # Return unknown status if temperatures are not valid
     return jsonify({'status': 'Unknown'}), 400
 
 # Function to run the Flask app
