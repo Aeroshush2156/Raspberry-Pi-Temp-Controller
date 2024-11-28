@@ -6,6 +6,8 @@ import RPi.GPIO as GPIO
 import os
 import tkinter as tk
 from tkinter import messagebox
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import requests
 import threading
 import subprocess
@@ -142,13 +144,29 @@ def run_tkinter_gui():
     # Set the window to fullscreen
     root.attributes('-fullscreen', True)
 
+    # Create a frame for the plot
+    plot_frame = tk.Frame(root)
+    plot_frame.pack(pady=10)
+
+    # Create a figure for the plot
+    fig = Figure(figsize=(8, 4), dpi=100)
+    ax = fig.add_subplot(111)
+    ax.set_title("Temperature vs Time")
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Temperature (°C)")
+
+    # Create a canvas to display the plot
+    canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
+
     label = tk.Label(root, text="Enter Target Temperature (°C):")
     label.pack(pady=10)
 
     entry = tk.Entry(root)
     entry.pack(pady=5)
 
-    button = tk.Button(root, text="Set Temperature")
+    button = tk.Button(root, text="Set Temperature", command=lambda: set_target_temp(entry))
     button.pack(pady=20)
 
     # Adding Quit button
@@ -158,8 +176,64 @@ def run_tkinter_gui():
     # Bind the Escape key to the same quit function for easy exit
     root.bind('<Escape>', lambda e: root.destroy())
 
-    root.mainloop()
+    # Label to display the current temperature
+    current_temp_label = tk.Label(root, text="Current Temperature: --°C", font=("Helvetica", 16))
+    current_temp_label.pack(pady=10)
 
+    # Label to display the system status
+    system_status_label = tk.Label(root, text="System Status: --", font=("Helvetica", 16))
+    system_status_label.pack(pady=10)
+
+    def update_display():
+        try:
+            response = requests.get('http://localhost:5000/system_status')
+            if response.status_code == 200:
+                data = response.json()
+                current_temp_label.config(text=f"Current Temperature: {data['current_temp']}°C")
+                system_status_label.config(text=f"System Status: {data['status']}")
+
+                # Change color based on system status
+                if data['status'] == 'Heating':
+                    system_status_label.config(fg='red')
+                elif data['status'] == 'Cooling':
+                    system_status_label.config(fg='blue')
+                else:
+                    system_status_label.config(fg='black')
+            else:
+                current_temp_label.config(text="Current Temperature: --°C")
+                system_status_label.config(text="System Status: --")
+        except Exception as e:
+            current_temp_label.config(text="Current Temperature: --°C")
+            system_status_label.config(text="System Status: --")
+            print(f"Error updating display: {e}")
+
+        root.after(60000, update_display)  # Update every minute
+
+    def update_plot():
+        try:
+            response = requests.get('http://localhost:5000/data')
+            if response.status_code == 200:
+                data = response.json()
+                times = [entry['timestamp'] for entry in data]
+                temps = [entry['temp'] for entry in data]
+                ax.clear()
+                ax.plot(times, temps, label='Temperature (°C)')
+                ax.set_title("Temperature vs Time")
+                ax.set_xlabel("Time")
+                ax.set_ylabel("Temperature (°C)")
+                ax.legend()
+                canvas.draw()
+            else:
+                print("Failed to fetch data for plot")
+        except Exception as e:
+            print(f"Error updating plot: {e}")
+
+        root.after(60000, update_plot)  # Update every minute
+
+    update_display()  # Initial call to update the display
+    update_plot()  # Initial call to update the plot
+
+    root.mainloop()
 # Function to run the Flask app
 def run_flask():
     app.run(host='0.0.0.0', port=5000, debug=False)
