@@ -75,16 +75,22 @@ class Temperature(db.Model):
 
 # Function to set target temperature
 def set_target_temp(entry):
-    global target_temp  # Declare as global to modify the outer variable
-    target_temp = entry.get()
-    if target_temp:
+    global target_temp  # Declare as global so it modifies the outer variable
+    target_temp_value = entry.get()
+
+    if target_temp_value:
         try:
+            target_temp = float(target_temp_value)  # Convert input to float
+
             response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
             if response.status_code == 200:
                 result = response.json()
                 messagebox.showinfo("Success", result['message'])
+                update_display()  # Fetch new status after setting the temperature
             else:
                 messagebox.showerror("Error", "Failed to set target temperature")
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid numeric temperature")
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
     else:
@@ -144,15 +150,15 @@ def home():
     return render_template('index.html')
 @app.route('/set_target_temp', methods=['POST'])
 def set_target_temp():
-    target_temp = request.json.get('target_temp')
+    target_temp = request.json.get('target_temp')  # Retrieve the target temperature from the JSON payload
     if target_temp is not None:
         try:
-            target_temp = float(target_temp)  # Convert target_temp to float
-            control_temperature(target_temp)
+            target_temp = float(target_temp)  # Ensure the value is treated as a float
+            # Logic to handle the target temperature
             return jsonify({'message': 'Target temperature set successfully'})
         except ValueError:
             return jsonify({'message': 'Invalid target temperature'}), 400
-    return jsonify({'message': 'Invalid target temperature'}), 400
+    return jsonify({'message': 'Target temperature not provided'}), 400
 
 @app.route('/data', methods=['GET'])
 def get_data():
