@@ -38,6 +38,9 @@ db = SQLAlchemy(app)
 # Global variable for target temperature
 target_temp = None
 
+# Declare root as a global variable
+root = None
+
 # Function to read raw data from the temperature sensor
 def read_temp_raw():
     try:
@@ -74,29 +77,25 @@ class Temperature(db.Model):
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 # Function to set target temperature
-def set_target_temp(entry=None):  # Allow entry to be optional
+def set_target_temp(entry):  # No need to make entry optional
     global target_temp
-    if entry:  # Ensure entry is provided
-        target_temp_value = entry.get()
-        if target_temp_value:
-            try:
-                target_temp = float(target_temp_value)  # Convert input to float
-                response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
-                if response.status_code == 200:
-                    result = response.json()
-                    messagebox.showinfo("Success", result['message'])
-                    update_display()  # Fetch new status after setting the temperature
-                else:
-                    messagebox.showerror("Error", "Failed to set target temperature")
-            except ValueError:
-                messagebox.showerror("Error", "Please enter a valid numeric temperature")
-            except Exception as e:
-                messagebox.showerror("Error", f"An error occurred: {e}")
-        else:
-            messagebox.showwarning("Input Error", "Please enter a valid target temperature")
-    else:  # Handle case where no entry is provided
-        messagebox.showwarning("Input Error", "Entry cannot be None.")
-
+    target_temp_value = entry.get()  # Get the value from the Entry
+    if target_temp_value:
+        try:
+            target_temp = float(target_temp_value)  # Convert input to float
+            response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
+            if response.status_code == 200:
+                result = response.json()
+                messagebox.showinfo("Success", result['message'])
+                update_display()  # Fetch new status after setting the temperature
+            else:
+                messagebox.showerror("Error", "Failed to set target temperature")
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid numeric temperature")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
+    else:
+        messagebox.showwarning("Input Error", "Please enter a valid target temperature")
 
 # Function to save temperature to the database
 def save_temp_to_db():
@@ -210,6 +209,48 @@ def system_status():
 def run_flask():
     app.run(host='0.0.0.0', port=5000, debug=False)
 
+    # Label to display the current temperature
+current_temp_label = tk.Label(root, text="Current Temperature: --°C", font=("Helvetica", 16))
+current_temp_label.pack(pady=10)
+
+    # Label to display the system status
+system_status_label = tk.Label(root, text="System Status: --", font=("Helvetica", 16))
+system_status_label.pack(pady=10)
+
+
+
+def update_display():
+    global target_temp  # Ensure we reference the updated target_temp
+    # Ensure target_temp is not None
+    if target_temp is None:
+        print("Warning: target_temp is not set. Using default value.")
+        target_temp = 20  # Set default value if not set; adjust as necessary
+
+    try:
+        response = requests.get('http://localhost:5000/system_status?target_temp=' + str(target_temp))
+        if response.status_code == 200:
+            data = response.json()
+            current_temp_label.config(text=f"Current Temperature: {data['current_temp']}°C")
+            system_status_label.config(text=f"System Status: {data['status']}")
+
+            # Change color based on system status
+            if data['status'] == 'Heating':
+                system_status_label.config(fg='red')
+            elif data['status'] == 'Cooling':
+                system_status_label.config(fg='blue')
+            else:
+                system_status_label.config(fg='black')
+        else:
+            current_temp_label.config(text="Current Temperature: --°C")
+            system_status_label.config(text="System Status: --")
+    except Exception as e:
+        current_temp_label.config(text="Current Temperature: --°C")
+        system_status_label.config(text="System Status: --")
+        print(f"Error updating display: {e}")  # Print error to console
+        logging.error(f"Error updating display: {e}")  # Also log the error
+
+    root.after(60000, update_display)  # Update every minute
+
 
 
 # Function to create and run the tkinter GUI
@@ -252,45 +293,7 @@ def run_tkinter_gui():
     # Bind the Escape key to the same quit function for easy exit
     root.bind('<Escape>', lambda e: root.destroy())
 
-    # Label to display the current temperature
-    current_temp_label = tk.Label(root, text="Current Temperature: --°C", font=("Helvetica", 16))
-    current_temp_label.pack(pady=10)
 
-    # Label to display the system status
-    system_status_label = tk.Label(root, text="System Status: --", font=("Helvetica", 16))
-    system_status_label.pack(pady=10)
-
-    def update_display():
-        global target_temp  # Ensure we reference the updated target_temp
-        # Ensure target_temp is not None
-        if target_temp is None:
-           print("Warning: target_temp is not set. Using default value.")
-           target_temp = 20  # Set default value if not set; adjust as necessary
-
-        try:
-            response = requests.get('http://localhost:5000/system_status?target_temp=' + str(target_temp))
-            if response.status_code == 200:
-                data = response.json()
-                current_temp_label.config(text=f"Current Temperature: {data['current_temp']}°C")
-                system_status_label.config(text=f"System Status: {data['status']}")
-
-                # Change color based on system status
-                if data['status'] == 'Heating':
-                    system_status_label.config(fg='red')
-                elif data['status'] == 'Cooling':
-                    system_status_label.config(fg='blue')
-                else:
-                    system_status_label.config(fg='black')
-            else:
-                current_temp_label.config(text="Current Temperature: --°C")
-                system_status_label.config(text="System Status: --")
-        except Exception as e:
-            current_temp_label.config(text="Current Temperature: --°C")
-            system_status_label.config(text="System Status: --")
-            print(f"Error updating display: {e}")  # Print error to console
-            logging.error(f"Error updating display: {e}")  # Also log the error
-
-        root.after(60000, update_display)  # Update every minute
 
     def update_plot():
         try:
