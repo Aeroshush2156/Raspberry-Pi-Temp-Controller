@@ -124,19 +124,18 @@ def control_temperature(target_temp):
     if current_temp is not None:
         if current_temp < target_temp:
             duty_cycle = calculate_duty_cycle(current_temp, target_temp)
-            HEAT_PWM.ChangeDutyCycle(duty_cycle)
-            COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
-            logging.info(f"Heating ON, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
+            HEAT_PWM.ChangeDutyCycle(duty_cycle)  # Set heating duty cycle
+            COOL_PWM.ChangeDutyCycle(0)            # Turn off cooling
+            logging.info(f'Heating ON, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C, Duty Cycle for Heating: {duty_cycle}')
         elif current_temp > target_temp:
             duty_cycle = calculate_duty_cycle(current_temp, target_temp)
-            COOL_PWM.ChangeDutyCycle(duty_cycle)
-            HEAT_PWM.ChangeDutyCycle(0)  # Turn off heating
-            logging.info(f"Heating OFF, Cooling ON. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
+            COOL_PWM.ChangeDutyCycle(duty_cycle)   # Set cooling duty cycle
+            HEAT_PWM.ChangeDutyCycle(0)             # Turn off heating
+            logging.info(f'Heating OFF, Cooling ON. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C, Duty Cycle for Cooling: {duty_cycle}')
         else:
-            HEAT_PWM.ChangeDutyCycle(0)  # Turn off heating
-            COOL_PWM.ChangeDutyCycle(0)  # Turn off cooling
-            logging.info(f"Heating OFF, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C")
-
+            HEAT_PWM.ChangeDutyCycle(0)             # Turn off heating
+            COOL_PWM.ChangeDutyCycle(0)             # Turn off cooling
+            logging.info(f'Heating OFF, Cooling OFF. Current Temp: {current_temp}°C, Target Temp: {target_temp}°C')
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
