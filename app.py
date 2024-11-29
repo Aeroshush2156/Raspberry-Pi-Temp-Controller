@@ -74,28 +74,28 @@ class Temperature(db.Model):
     timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 # Function to set target temperature
-def set_target_temp(entry):
-    global target_temp  # Declare as global so it modifies the outer variable
-    target_temp_value = entry.get()
-
-    if target_temp_value:
-        try:
-            target_temp = float(target_temp_value)  # Convert input to float
-
-            response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
-            if response.status_code == 200:
-                result = response.json()
-                messagebox.showinfo("Success", result['message'])
-                update_display()  # Fetch new status after setting the temperature
-            else:
-                messagebox.showerror("Error", "Failed to set target temperature")
-        except ValueError:
-            messagebox.showerror("Error", "Please enter a valid numeric temperature")
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred: {e}")
-    else:
-        messagebox.showwarning("Input Error", "Please enter a valid target temperature")
-
+def set_target_temp(entry=None):  # Allow entry to be optional
+    global target_temp
+    if entry:  # Ensure entry is provided
+        target_temp_value = entry.get()
+        if target_temp_value:
+            try:
+                target_temp = float(target_temp_value)  # Convert input to float
+                response = requests.post('http://localhost:5000/set_target_temp', json={'target_temp': target_temp})
+                if response.status_code == 200:
+                    result = response.json()
+                    messagebox.showinfo("Success", result['message'])
+                    update_display()  # Fetch new status after setting the temperature
+                else:
+                    messagebox.showerror("Error", "Failed to set target temperature")
+            except ValueError:
+                messagebox.showerror("Error", "Please enter a valid numeric temperature")
+            except Exception as e:
+                messagebox.showerror("Error", f"An error occurred: {e}")
+        else:
+            messagebox.showwarning("Input Error", "Please enter a valid target temperature")
+    else:  # Handle case where no entry is provided
+        messagebox.showwarning("Input Error", "Entry cannot be None.")
 
 
 # Function to save temperature to the database
